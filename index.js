@@ -25,6 +25,8 @@ function HashPass(user, pass, salt) { //U: mantener IGUAL que Core/Util/Crypto/H
 	return salt+BytesToBase64( HashSha256( salt+"\t"+user+"\t"+pass ) );	
 }
 
+//============================================================
+Session= {}; //U: la sesion en github
 
 //============================================================
 const { Component, h, render } = window.preact;
@@ -74,18 +76,28 @@ hugo:!:suario
 PassMgrScr.prototype= new Component();
 
 //------------------------------------------------------------
+Login= {};
 function LoginForm() { //U: form login
-  var my= this; //A: I want my closueres back!
+  var my= this; 
+
+	function onKey(e, k, onData) {
+		Login[k]= e.target.value;
+		if (e.key== 'Enter') {
+			onData();
+		}	
+	}
+
 	my.render= function(props, state) {
 		return (
 			h('div',{},
+				h('h1',{},'Login to your github account'),
 				h('div',{},
-					h('label',{},'Usuario'),
-					h('input',{},''),
+					h('label',{},'User'),
+					h('input',{onKeyUp: e => onKey(e,'user',props.onData)},''),
 				),
 				h('div',{},
-					h('label',{},'Clave'),
-					h('input',{type: 'password'},''),
+					h('label',{},'Pass'),
+					h('input',{onKeyUp: e => onKey(e,'pass',props.onData), type: 'password'},''),
 				),
 			));
 	}
@@ -93,31 +105,78 @@ function LoginForm() { //U: form login
 LoginForm.prototype= new Component();
 
 //------------------------------------------------------------
-SessionUsr= null;
+function RepoForm() { //U: form login
+  var my= this; 
+	my.render= function(props, state) {
+		return (
+			h('div',{},
+				h('h1',{},'Select a repository for protocol definitions'),
+				h('ul',{},
+					Session.repos.map( r => 
+						h('li',{ onClick: () => props.onData( r.full_name ) }, 
+							r.owner.login==Session.user ? r.name : r.full_name) 
+					)
+				),
+			));
+	}
+}
+RepoForm.prototype= new Component();
+
+//------------------------------------------------------------
 
 function App() { //U:pantalla principal
   var my= this; //A: I want my closueres back!
+
 	function logout() {
-		SessionUsr= null;
+		Session= {}; //A: limpiamos la sesion
 		my.setState({});
 	}
 
 	function login() {
-		SessionUsr= 'pepe';
+		keys_file_github('',{user: Login.user, pass: Login.pass})
+			.then( res => {
+				if (Array.isArray(res)) {
+					Session.user= Login.user;
+					Session.pass= Login.pass;
+					Session.repos= res;	
+					my.setState({});
+				}
+				else {
+					my.setState({ msg: (res && typeof(res)=='object' && res.message) || 'Error' });
+				}
+			});
+	}
+
+	function onRepoElegido(repo) {
+		Session.RepoElegido= repo;
+		my.setState({});
+	}
+
+	function elegirRepo() {
+		Session.RepoElegido= null;
 		my.setState({});
 	}
 
 	my.render= function(props, state) {
 		return (h('div',{},
-			h('div',{},
-				SessionUsr ? 
-					h(Btn,{onClick: logout},'Logout '+SessionUsr) : 
-					h(Btn,{onClick: login},'Login')
+			h('div',{style: 'width: 100%; height: 36px;'},
+				h('div',{style: 'display: inline-block; height: inherit;'}, my.state.msg || ''),
+				h('div',{style: 'display: inline-block; height: inherit; right: 0px; position: absolute; text-align: right;'}, 
+					Session.RepoElegido ? 
+						h(Btn,{onClick: elegirRepo},'Repo '+Session.RepoElegido) : 
+            '',
+
+					Session.user ? 
+						h(Btn,{onClick: logout},'Logout '+Session.user) : 
+						h(Btn,{onClick: login},'Login')
+				),
 			),
 
-			SessionUsr ? 
-				h(PassMgrScr) :
-				h(LoginForm) ,
+			Session.user==null ? 
+				h(LoginForm, {onData: login} ) :
+			Session.RepoElegido==null ?
+				h(RepoForm, {onData: onRepoElegido}) :
+			h(PassMgrScr), 
 		));
 	}
 }
