@@ -1,0 +1,105 @@
+html, body {
+	height: 100%;
+	padding: 0;
+	margin: 0;
+}
+
+.boton-arriba .material-icons {
+	font-size: 12px;	
+}
+
+.inputfile {
+	width: 0.1px;
+	height: 0.1px;
+	opacity: 0;
+	overflow: hidden;
+	position: absolute;
+	z-index: -1;
+}
+
+#canvas {
+	height: 50%;
+}
+
+.bjs-powered-by {
+	top: 0px !important;
+	right: 0px !important;
+	position: fixed !important;
+}
+
+.bjs-powered-by img {
+	width: 20px;
+	height: 20px;
+}
+
+/* QUIERO: paleta horizontal */
+#canvas {
+	margin-top: 50px; /* dejo lugar para la paleta */
+}
+.djs-palette {
+	top: 30px;
+	left: 0px;
+	position: fixed;
+}
+
+.djs-palette-entries {
+	height: 36px;
+}
+
+.djs-palette.two-column.open {
+	width: 100%; 
+}
+
+.group { /* U: los grupitos de elementos en la paleta */
+	display: inline-block;
+	border-right: 1px dotted gray;
+}
+
+.separator {
+	display: none;
+}
+
+.djs-palette .entry {
+	line-height: 32px;
+	height: 32px;
+}
+
+/* ==================================================== */
+/* FORM */
+label {
+  width: 5em;
+  display: inline-block;
+}
+
+input {
+	width: 30em;
+}
+
+/* ==================================================== */
+.diagram-note {
+	background-color: rgba(66, 180, 21, 0.7);
+	color: White;
+	border-radius: 5px;
+	font-family: Arial;
+	font-size: 12px;
+	padding: 5px;
+	min-height: 16px;
+	width: 50px;
+	text-align: center;
+}
+
+.needs-discussion:not(.djs-connection) .djs-visual > :nth-child(1) {
+	stroke: rgba(66, 180, 21, 0.7) !important; /* color elements as red */
+}
+
+#save-buttonX {
+	position: fixed;
+	bottom: 20px;
+	left: 20px;
+}
+#load-buttonX {
+	position: fixed;
+	bottom: 20px;
+	left: 60px;
+}
+
