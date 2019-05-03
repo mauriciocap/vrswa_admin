@@ -160,7 +160,9 @@ SelectOne.prototype= new Component();
 
 function RepoForm(props) {
 	var data= {}; Session.repos.map( r => {
-		data[r.full_name]= r.owner.login==Session.user ? r.name : r.full_name;
+		if (! r.name.match(/_res$/)) { //A: no es de resultados
+			data[r.full_name]= r.owner.login==Session.user ? r.name : r.full_name;
+		}
 	});
 
 	return h(SelectOne,{ 
@@ -257,7 +259,12 @@ function App() { //U:pantalla principal
 				h(RepoForm, {onData: onRepoElegido}) :
 			Session.AccionElegida==null ?
 				h(SelectOne, {onData: onAccionElegida, data: Acciones}) :
-			h(PassMgrScr), 
+			Session.AccionElegida=='usradmin' ? 
+				h(PassMgrScr) :
+			Session.AccionElegida=='results' ? 
+				h('a',{target: "procresults", href: 'https://github.com/'+Session.RepoElegido+'_res', 'class': BotonPillClass},'Ver')	:
+				h('div',{},'Under construction')
+				, 
 		)); 
 		return r;
 	}
