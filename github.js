@@ -78,4 +78,16 @@ function keys_file_github(fname,opts) {
   }
 }
 
+function create_repo_github(fdsc,opts) {
+  if (typeof(fdsc)=="string") { fdsc= {fname: fdsc } }
+	return mifetch('https://api.github.com/user/repos',
+		{
+			"name": fdsc.fname,
+			"description": fdsc.dsc||'',
+			"homepage": fdsc.homepage||null,
+			"private": fdsc.private||false,
+			"auto_init": true,
+		},
+		Object.assign({method: "POST"},opts));
+}
 

@@ -2,6 +2,8 @@ console.log("index js");
 
 //============================================================
 const Base64Chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
+const PrintableChars= 'a-z0-9!"#$%&\'()*+,./:;<=>?@[] ^_`{|}~-';
+const ReNonPrintable= /[^a-z0-9!"#$%&'()*+,.\/:;<=>?@\[\] ^_`{|}~-]/g;
 
 function randomString(len) {
 	return (new Array(len)).fill(" ")
@@ -158,18 +160,88 @@ function SelectOne() { //U: elegir
 }
 SelectOne.prototype= new Component();
 
-function RepoForm(props) {
-	var data= {}; Session.repos.map( r => {
-		if (! r.name.match(/_res$/)) { //A: no es de resultados
-			data[r.full_name]= r.owner.login==Session.user ? r.name : r.full_name;
-		}
-	});
+function RepoForm() {
+	var my= this;
 
-	return h(SelectOne,{ 
-		title: 'Select a repository for protocol definitions',
-		data: data,
-		...props });
+	var props;
+	var data;
+	var repoName;
+	var repoDsc;
+
+	function crearRepo() {
+		repoName= repoName.toLowerCase().replace(/[^a-z0-9_]/g,'_');
+		repoDsc= repoDsc.replace(ReNonPrintable,' ').replace(/\s+/,' ');
+		if (confirm('Create defs repo?\n'+repoName)) {
+			onMsg("Creating repo");
+			create_repo_github({fname: repoName, dsc: repoDsc},Session)
+			.then(res => {
+				if (res.full_name) { //A: success
+					Session.repos.push(res);
+					Session.repos= Session.repos.sort( (a,b) => (a>b ? -1 : 1) );
+					onMsg('Repo '+repoName+' created');
+					props.onData(repoName);	
+				}	
+				else {
+					if (res.errors) {
+						onMsg('ERROR '+res.errors[0].message);
+					}
+					else {
+						onMsg('ERROR '+(res.message ||''));	
+					}
+				}
+			});
+
+		}
+	}
+
+	function onData(repo) {
+		console.log("RepoForm onData",repo);
+		if (repo!='+ NEW +') {
+			props.onData(repo);
+		}
+		else {
+			my.setState({quiereNuevo: true});	
+		}
+	}
+
+	my.render= function (aProps) {
+		props= aProps;
+		if (!data) {
+		data= {}; Session.repos.map( r => {
+			if (! r.name.match(/_res$/)) { //A: no es de resultados
+				data[r.full_name]= r.owner.login==Session.user ? r.name : r.full_name;
+			}
+		});
+		data["+ NEW +"]= "+ NEW +"; 
+		}
+
+		return !my.state.quiereNuevo ? 
+			h(SelectOne,{ 
+					title: 'Select a repository for protocol definitions',
+					data: data,
+					...props,
+	 				onData: onData
+			}) :
+			h('div', {}, 
+				h('h1',{},'Crear repositorio de definiciones para SmartWorkAr'),
+				h('div',{},
+					h('label',{},'Name'),
+					h('input',{onInput: (e) => {repoName= e.target.value}} ),
+				),
+				h('div',{},
+					h('label',{},'Description'),
+					h('input',{onInput: (e) => {repoDsc= e.target.value}}),
+				),
+				h('div',{},
+					h(Btn,{onClick: () => my.setState({quiereNuevo: false})},'Cancel'),
+					h(Btn,{onClick: crearRepo},'Create'),
+				 )
+			 )
+		;
+
+	}
 }
+RepoForm.prototype= new Component();
 
 //------------------------------------------------------------
 Acciones= {
@@ -196,17 +268,19 @@ function App() { //U:pantalla principal
 	}
 
 	function login() {
+		onMsg('Login in ...');
 		keys_file_github('',{user: Login.user, pass: Login.pass})
 			.then( res => {
 				if (Array.isArray(res)) {
 					Session.user= Login.user;
 					Session.pass= Login.pass;
 					Session.repos= res;	
-					my.setState({ msg: '' });
+					onMsg('');
 				}
 				else {
-					my.setState({ msg: (res && typeof(res)=='object' && res.message) || 'Error' });
+					onMsg((res && typeof(res)=='object' && res.message) || 'Error' );
 				}
+				my.setState({});
 			});
 	}
 
