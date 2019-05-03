@@ -246,6 +246,126 @@ function RepoForm() {
 RepoForm.prototype= new Component();
 
 //------------------------------------------------------------
+function DefFormForm() {
+	var my= this;
+
+	var props;
+	var data;
+	var defName;
+
+	function crearStep() {
+		defName= defName.toLowerCase().replace(/[^a-z0-9_]/g,'_');
+		if (confirm('Create step ?\n'+defName)) {
+			onMsg("Creating step");
+			props.onData(defName);
+		}
+	}
+
+	my.render= function (aProps) {
+		props= aProps;
+		return (
+			h('div', {}, 
+				h('h1',{},'Form step'),
+				h('div',{},
+					h('label',{},'Name'),
+					h('input',{onInput: (e) => {defName= e.target.value}, value: defName} ),
+				),
+				h('div',{},
+					h(Btn,{onClick: () => props.onData()},'Cancel'),
+					h(Btn,{onClick: crearStep},'Save'),
+				 ),
+			 )
+		);
+	}
+}
+DefFormForm.prototype= new Component();
+
+//------------------------------------------------------------
+function DefShowFileForm() {
+	var my= this;
+
+	var props;
+	var data;
+	var defName;
+
+	function crearStep() {
+		defName= defName.toLowerCase().replace(/[^a-z0-9_]/g,'_');
+		if (confirm('Create step ?\n'+defName)) {
+			onMsg("Creating step");
+			props.onData(defName);
+		}
+	}
+
+	my.render= function (aProps) {
+		props= aProps;
+		return (
+			h('div', {}, 
+				h('h1',{},'Show file step'),
+				h('div',{},
+					h('label',{},'Name'),
+					h('input',{onInput: (e) => {defName= e.target.value}, value: defName} ),
+				),
+				h('div',{},
+					h(Btn,{onClick: () => props.onData()},'Cancel'),
+					h(Btn,{onClick: crearStep},'Save'),
+				 ),
+			 )
+		);
+	}
+}
+DefShowFileForm.prototype= new Component();
+
+
+//------------------------------------------------------------
+function DefTakePicForm() {
+	var my= this;
+
+	var props;
+	var data;
+	var defName;
+	var defMsg;
+
+	function crearStep() {
+		defName= defName.toLowerCase().replace(/[^a-z0-9_]/g,'_');
+		if (confirm('Create step ?\n'+defName)) {
+			onMsg("Creating step");
+			set_file_github(Session.RepoElegido+'/defs/'+props.def+'/'+defName+'.act_pic', defMsg, Session)
+				.then(res => {
+					if (res.commit) {
+						onMsg('Step created');
+						props.onData(defName);
+					}
+					else {
+						onMsg('Error '+res.message);
+					}
+				})
+		}
+	}
+
+	my.render= function (aProps) {
+		props= aProps;
+		return (
+			h('div', {}, 
+				h('h1',{},'Take pic step'),
+				h('div',{},
+					h('label',{},'Name'),
+					h('input',{onInput: (e) => {defName= e.target.value}, value: defName} ),
+				),
+				h('div',{},
+					h('label',{},'Message'),
+					h('input',{onInput: (e) => {defMsg= e.target.value}, value: defMsg} ),
+				),
+				h('div',{},
+					h(Btn,{onClick: () => props.onData()},'Cancel'),
+					h(Btn,{onClick: crearStep},'Save'),
+				 ),
+			 )
+		);
+	}
+}
+DefTakePicForm.prototype= new Component();
+
+//------------------------------------------------------------
 function EditDefForm() {
 	var my= this;
 
@@ -254,9 +374,23 @@ function EditDefForm() {
 	var defName;
 
 	function crearDef() {
-		defName= defName.toLowerCase().replace(/[^a-z0-9_]/g,'_');
-		if (confirm('Create def ?\n'+defName)) {
-			onMsg("Creating def");
+		if (my.state.defElegida=='+ NEW +') {
+			defName= defName.toLowerCase().replace(/[^a-z0-9_]/g,'_');
+			if (confirm('Create def ?\n'+defName)) {
+				onMsg("Creating def");
+				set_file_github(Session.RepoElegido+'/defs/'+defName+'/defmeta.json','{}',Session)
+					.then(res => {
+						if (res.commit) {
+							onMsg('Created');
+						}
+						else {
+							onMsg('Error '+res.message);
+						}
+					});
+			}
+		}
+		else {
+			alert('Update under construction');
 		}
 	}
 
@@ -328,12 +462,19 @@ function EditDefForm() {
 							h('li',{},k)
 							)
 					 ),
+
+					my.state.quiereNuevo=='takepic' ?
+						h(DefTakePicForm,{def: defName, onData: () => { my.setState({quiereNuevo: null}) }}) :
+					my.state.quiereNuevo=='form' ?
+						h(DefFormForm,{def: defName, onData: () => { my.setState({quiereNuevo: null}) }}) :
+					my.state.quiereNuevo=='showfile' ?
+						h(DefShowFileForm,{def: defName, onData: () => { my.setState({quiereNuevo: null}) }}) :
 					h('div',{},
-						'Add step: ',
-						h(Btn,{},'Form'),
-						h(Btn,{},'Take Pic'),
-						h(Btn,{},'Show File'),
-					 ),
+							'Add step: ',
+							h(Btn,{onClick: () => {my.setState({ quiereNuevo: 'form'})}},'Form'),
+							h(Btn,{onClick: () => {my.setState({ quiereNuevo: 'takepic'})}},'Take Pic'),
+							h(Btn,{onClick: () => {my.setState({ quiereNuevo: 'showfile'})}},'Show File'),
+						 )
 				 ),
 			 )
 		;
