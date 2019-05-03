@@ -43,6 +43,35 @@ function Btn({children, ...props}) {
 }
 
 //------------------------------------------------------------
+function readInputFile(file, fmt, cb) { //U: lee un archivo de un input file
+	reader = new FileReader();
+	reader.onload= function (revt) {
+		cb(revt.target.result);
+	};
+	if (fmt=='bin') {
+		reader.readAsBinaryString(file);
+	}
+	else {
+		reader.readAsText(file);
+	}
+};
+
+var IdCnt= 0;
+function BtnFiles({children, ...props}) { //U:boton para subir archivos
+	var id= 'filein'+(IdCnt++);
+
+	function onData(e) {
+		console.log('BtnFiles',id,e);
+		props.onData(e.target.files, readInputFile);
+	}
+
+	return h('div',{style:'display: inline-block;'},
+		h('input',{onChange: onData, type:'file', id: id, name: id, accept: props.accept||'*', 'class':'inputfile'}),
+		h('label',{style:'width: auto;', 'for': id, 'class': BotonArribaClass}, children),
+	);
+}
+
+//------------------------------------------------------------
 UsrPassDflt= `#Formato: en cada linea user:#:hash o user:!:pass
 ana:!:lista
 hugo:!:suario
@@ -50,7 +79,6 @@ hugo:!:suario
 
 function PassMgrScr() { //U:pantalla para administrar usuario y clave
   var my= this; //A: I want my closueres back!
-	console.log("MNT");
   Component.apply(my,arguments);  //A: initialize with parent
   my.componentWillMount= function () { //A: parent my call our member functions
 		passLoad();
@@ -91,7 +119,7 @@ function PassMgrScr() { //U:pantalla para administrar usuario y clave
 					if (res.commit) { 
 						Session.UsrPassSha= res.commit.sha; //A: guardo para proximo save
 						onMsg("Data saved");
-						return ;
+						return;
 					}				
 					else {
 						onMsg("Error saving data "+res.message);
@@ -288,11 +316,24 @@ function DefShowFileForm() {
 	var data;
 	var defName;
 
-	function crearStep() {
-		defName= defName.toLowerCase().replace(/[^a-z0-9_]/g,'_');
+	function crearStep(files, reader) {
+		console.log("DefShowFileForm create",files);
+		defName= defName||(files && files[0] && files[0].name)||'file';
+		defName= defName.toLowerCase().replace(/[^a-z0-9_\.]/g,'_');
 		if (confirm('Create step ?\n'+defName)) {
 			onMsg("Creating step");
-			props.onData(defName);
+			reader(files[0],'bin',function (bytes) {
+				console.log("BYTES (100)",bytes.substr(0,100));
+				set_file_github(Session.RepoElegido+'/defs/'+props.def+'/'+defName, bytes, Session)
+					.then( res => {
+						if (res.commit) {
+							props.onData(defName);
+						}
+						else {
+							onMsg('Error '+res.message);
+						}
+					});
+			})
 		}
 	}
 
@@ -307,7 +348,7 @@ function DefShowFileForm() {
 				),
 				h('div',{},
 					h(Btn,{onClick: () => props.onData()},'Cancel'),
-					h(Btn,{onClick: crearStep},'Save'),
+					h(BtnFiles,{onData: crearStep, accept: '*.png,*.jpg,*.pdf,*.txt'},'Upload'),
 				 ),
 			 )
 		);
@@ -423,17 +464,19 @@ function EditDefForm() {
 	my.render= function (aProps) {
 		props= aProps;
 		if (!data) {
-		data= {}; keys_file_github(Session.RepoElegido+'/defs',Session)
-			.then( res => {
-				if (Array.isArray(res)) {
-					res.map( e => {
-						data[e.name]= e.name;
-					});
-				}
-				data["+ NEW +"]= "+ NEW +"; 
-				console.log("DEFS DATA",Object.keys(data));
-				my.setState({});
-			});
+			onMsg('Loading ...');
+			data= {}; keys_file_github(Session.RepoElegido+'/defs',Session)
+				.then( res => {
+					if (Array.isArray(res)) {
+						res.map( e => {
+							data[e.name]= e.name;
+						});
+					}
+					data["+ NEW +"]= "+ NEW +"; 
+					onMsg('Loaded');
+					console.log("DEFS DATA",Object.keys(data));
+					my.setState({});
+				});
 		}
 
 		return !my.state.defElegida ? 
