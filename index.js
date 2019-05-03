@@ -142,6 +142,7 @@ function LoginForm() { //U: form login
 	}
 }
 LoginForm.prototype= new Component();
+
 //------------------------------------------------------------
 function SelectOne() { //U: elegir 
   var my= this; 
@@ -160,6 +161,7 @@ function SelectOne() { //U: elegir
 }
 SelectOne.prototype= new Component();
 
+//------------------------------------------------------------
 function RepoForm() {
 	var my= this;
 
@@ -242,6 +244,103 @@ function RepoForm() {
 	}
 }
 RepoForm.prototype= new Component();
+
+//------------------------------------------------------------
+function EditDefForm() {
+	var my= this;
+
+	var props;
+	var data;
+	var defName;
+
+	function crearDef() {
+		defName= defName.toLowerCase().replace(/[^a-z0-9_]/g,'_');
+		if (confirm('Create def ?\n'+defName)) {
+			onMsg("Creating def");
+		}
+	}
+
+	function onData(def) {
+		console.log("DEF selected",def);
+		my.setState({files: {}, defLua: null});
+		if (def!='+ NEW +') {
+			console.log("DEF edit",def);	
+			keys_file_github(Session.RepoElegido+'/defs/'+def,Session)
+				.then(res => {
+					console.log("DEF files",res);
+					if(Array.isArray(res)) {
+						var files= {};
+						res.map( f => { files[f.path.substr(('defs/'+def).length+1)]= f } );
+						my.setState({files: files});
+					}
+				});
+
+		  get_file_github(Session.RepoElegido+'/defs/'+def+'/Def.lua',Session)
+				.then(res => {
+					if (res.content) {
+						my.setState({defLua: atob(res.content), defLuaSha: res.sha});
+					}
+				});
+		}
+		defName= def;
+		my.setState({defElegida: def});	
+	}
+
+	my.render= function (aProps) {
+		props= aProps;
+		if (!data) {
+		data= {}; keys_file_github(Session.RepoElegido+'/defs',Session)
+			.then( res => {
+				if (Array.isArray(res)) {
+					res.map( e => {
+						data[e.name]= e.name;
+					});
+				}
+				data["+ NEW +"]= "+ NEW +"; 
+				console.log("DEFS DATA",Object.keys(data));
+				my.setState({});
+			});
+		}
+
+		return !my.state.defElegida ? 
+			h(SelectOne,{ 
+					title: 'Select a protocol definition',
+					data: data,
+					...props,
+	 				onData: onData
+			}) :
+			h('div', {}, 
+				h('h1',{},'Edit protocol definition'),
+
+				h('div',{},
+					h('label',{},'Name'),
+					h('input',{onInput: (e) => {defName= e.target.value}, value: defName} ),
+				),
+				h('div',{},
+					h(Btn,{onClick: () => my.setState({defElegida: null})},'Cancel'),
+					h(Btn,{onClick: crearDef},'Save'),
+				 ),
+
+				h('div',{},
+					h('h2',{},'Files'),
+					h('ul',{},
+						Object.keys(my.state.files||{}).map( k =>
+							h('li',{},k)
+							)
+					 ),
+					h('div',{},
+						'Add step: ',
+						h(Btn,{},'Form'),
+						h(Btn,{},'Take Pic'),
+						h(Btn,{},'Show File'),
+					 ),
+				 ),
+			 )
+		;
+
+	}
+}
+EditDefForm.prototype= new Component();
 
 //------------------------------------------------------------
 Acciones= {
@@ -337,7 +436,7 @@ function App() { //U:pantalla principal
 				h(PassMgrScr) :
 			Session.AccionElegida=='results' ? 
 				h('a',{target: "procresults", href: 'https://github.com/'+Session.RepoElegido+'_res', 'class': BotonPillClass},'Ver')	:
-				h('div',{},'Under construction')
+				h(EditDefForm)
 				, 
 		)); 
 		return r;
